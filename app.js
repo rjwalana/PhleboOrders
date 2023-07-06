@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use("/api/auth", require("./routes/auth"));
+app.use("/api/orders", require("./routes/orders"));
 
 mongoose.set("strictQuery", true);
 mongoose.set("useFindAndModify", false);
