@@ -148,10 +148,37 @@ const deleteOrder = async (req, res) => {
   }
 };
 
+const paginatedOrders = (req, res) => {
+  try {
+    const page = req.params.page;
+    const size = req.params.limit;
+    const getPagination = (page, size) => {
+      const limit = size ? +size : 3;
+      const offset = page ? page * limit : 0;
+
+      return { limit, offset };
+    };
+    const { limit, offset } = getPagination(page, size);
+
+    PhleboOrder.paginate({}, { offset, limit }).then((data) => {
+      res.send({
+        totalItems: data.totalDocs,
+        PhleboOrders: data.docs,
+        totalPages: data.totalPages,
+        currentPage: data.page - 1,
+      });
+    });
+  } catch (err) {
+    res.status(500).json(err);
+    console.log(err);
+  }
+};
+
 module.exports = {
   getAllOrders,
   getOrder,
   createOrder,
   updateOrder,
   deleteOrder,
+  paginatedOrders,
 };

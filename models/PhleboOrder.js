@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const mongoosePaginate = require("mongoose-paginate-v2");
 
 //PhleboOrders
 
@@ -202,6 +203,8 @@ const PhleboOrderSchema = new mongoose.Schema({
     required: true,
   },
 });
+
+PhleboOrderSchema.plugin(mongoosePaginate);
 
 //PhleboOrderSchema
 const PhleboOrder = mongoose.model("PhleboOrder", PhleboOrderSchema);
