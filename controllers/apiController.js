@@ -1,14 +1,21 @@
-const PhleboOrder = require("../models/PhleboOrder");
+// const PhleboOrder = require("../models/PhleboOrder");
+const phleboOrderDataServiceProvider = require("../services/PhleboOrderDataServiceProvider");
 
 //GET METHOD for all orders
 const getAllOrders = async (req, res) => {
   try {
-    const orders = await PhleboOrder.find({});
-    res.status(200).json(orders);
-    console.log(orders);
+    let allorders = await phleboOrderDataServiceProvider.readallorders();
+    res.status(200).json({
+      success: true,
+      message: "All Orders reading successfull!",
+      data: allorders,
+    });
   } catch (err) {
-    res.status(500).json(err);
     console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "All Orders reading failed!",
+    });
   }
 };
 
@@ -16,19 +23,25 @@ const getAllOrders = async (req, res) => {
 const getOrder = async (req, res) => {
   try {
     const id = req.params.id;
-    const order = await PhleboOrder.findById(id, {});
-    res.status(200).json(order);
-    console.log(order);
+    let order = await phleboOrderDataServiceProvider.readorder(id);
+    res.status(200).json({
+      success: true,
+      message: "Order reading successfull!",
+      data: order,
+    });
   } catch (err) {
-    res.status(500).json(err);
     console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "Order reading failed!",
+    });
   }
 };
 
 //POST METHOD
 const createOrder = async (req, res) => {
   try {
-    const phleboOrder = new PhleboOrder({
+    let orderData = {
       Order_id: req.body.Order_id,
       Service_date: req.body.Service_date,
       Priority: req.body.Priority,
@@ -70,13 +83,19 @@ const createOrder = async (req, res) => {
       Laboratory: req.body.Laboratory,
       Drop_Off_Date: req.body.Drop_Off_Date,
       Drop_Off_Time: req.body.Drop_Off_Time,
+    };
+    let createdOrder = await phleboOrderDataServiceProvider.create(orderData);
+    res.status(200).json({
+      success: true,
+      message: "Order created successfull!",
+      data: createdOrder,
     });
-    const order = await phleboOrder.save();
-    res.status(200).json(order);
-    console.log(order);
   } catch (err) {
-    res.status(500).json(err);
     console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "Order creation failed!",
+    });
   }
 };
 
@@ -84,7 +103,7 @@ const createOrder = async (req, res) => {
 const updateOrder = async (req, res) => {
   try {
     const id = req.params.id;
-    const updatedorder = await PhleboOrder.findByIdAndUpdate(id, {
+    let updatedorderData = {
       Order_id: req.body.Order_id,
       Service_date: req.body.Service_date,
       Priority: req.body.Priority,
@@ -126,12 +145,22 @@ const updateOrder = async (req, res) => {
       Laboratory: req.body.Laboratory,
       Drop_Off_Date: req.body.Drop_Off_Date,
       Drop_Off_Time: req.body.Drop_Off_Time,
+    };
+    let updatedOrder = await phleboOrderDataServiceProvider.update(
+      id,
+      updatedorderData
+    );
+    res.status(200).json({
+      success: true,
+      message: "Order update successfull!",
+      data: updatedOrder,
     });
-    res.status(200).json(updatedorder);
-    console.log(updatedorder);
   } catch (err) {
-    res.status(500).json(err);
     console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "Order update failed!",
+    });
   }
 };
 
@@ -139,12 +168,18 @@ const updateOrder = async (req, res) => {
 const deleteOrder = async (req, res) => {
   try {
     const id = req.params.id;
-    const deletedorder = await PhleboOrder.findByIdAndDelete(id, {});
-    res.status(200).json(deletedorder);
-    console.log(deletedorder);
+    let deletedOrder = await phleboOrderDataServiceProvider.delete(id);
+    res.status(200).json({
+      success: true,
+      message: "Order deletion successfull!",
+      data: deletedOrder,
+    });
   } catch (err) {
-    res.status(500).json(err);
     console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "Order deletion failed!",
+    });
   }
 };
 
