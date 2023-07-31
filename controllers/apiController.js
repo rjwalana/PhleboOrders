@@ -1,5 +1,20 @@
-// const PhleboOrder = require("../models/PhleboOrder");
+const PhleboOrder = require("../models/PhleboOrder");
 const phleboOrderDataServiceProvider = require("../services/PhleboOrderDataServiceProvider");
+
+require("dotenv").config();
+const AWS = require("aws-sdk");
+const fs = require("fs");
+const path = require("path");
+
+//configuring the AWS environment
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
+});
+
+// initialize s3
+const s3 = new AWS.S3();
 
 //GET METHOD for all orders
 const getAllOrders = async (req, res) => {
@@ -183,6 +198,7 @@ const deleteOrder = async (req, res) => {
   }
 };
 
+//Paginate
 const paginatedOrders = (req, res) => {
   try {
     const page = req.params.page;
@@ -195,7 +211,7 @@ const paginatedOrders = (req, res) => {
     };
     const { limit, offset } = getPagination(page, size);
 
-    PhleboOrder.paginate({}, { offset, limit }).then((data) => {
+    PhleboOrder.paginate({}, { offset, limit }, function (err, data) {
       res.send({
         totalItems: data.totalDocs,
         PhleboOrders: data.docs,
@@ -209,6 +225,58 @@ const paginatedOrders = (req, res) => {
   }
 };
 
+const upload = (req, res) => {
+  try {
+    // if there is no file
+    if (!req.files) {
+      res.send({
+        status: false,
+        message: "No file uploaded",
+      });
+    } else {
+      //Use the name of the input field (i.e. "file") to retrieve the uploaded file
+      const file = req.files.file;
+
+      //read file and upload data (stream)
+      fs.readFile(file.tempFilePath, function (err, data) {
+        if (err) throw err; // Something went wrong!
+
+        //configuring parameters
+        const params = {
+          Bucket: process.env.AWS_S3_BUCKET,
+          // Body: fs.createReadStream(file.path),
+          // Body: fs.readFileSync(file.path),
+          Body: data,
+          Key: "folder/" + Date.now() + "_" + file.name,
+        };
+        // Upload the file to S3
+        s3.upload(params, (err, data) => {
+          //delete file from temp
+          fs.unlink(file.tempFilePath, function (err) {
+            if (err) {
+              console.log(err);
+            }
+            console.log("Temp File Deleted");
+          });
+
+          if (err) {
+            console.error("Error uploading the file:", err);
+            return res.status(500).json({ error: "Failed to upload the file" });
+          } else {
+            console.log("File uploaded successfully. Location:", data.Location);
+            return res.json({ success: true, location: data.Location });
+          }
+        });
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).end();
+  }
+};
+
+const download = (req, res) => {};
+
 module.exports = {
   getAllOrders,
   getOrder,
@@ -216,4 +284,6 @@ module.exports = {
   updateOrder,
   deleteOrder,
   paginatedOrders,
+  upload,
+  download,
 };

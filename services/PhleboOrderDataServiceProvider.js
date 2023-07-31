@@ -31,7 +31,21 @@ class PhleboOrderDataServiceProvider {
     return await deletedorder;
   }
 
-  async paginate() {}
+  async paginate(limit, offset) {
+    // const paginatedorders = PhleboOrder.paginate(
+    //   {},
+    //   { limit, offset },
+    //   function (err, data) {
+    //     res.send({
+    //       totalItems: data.totalDocs,
+    //       PhleboOrders: data.docs,
+    //       totalPages: data.totalPages,
+    //       currentPage: data.page - 1,
+    //     });
+    //   }
+    // );
+    // return await paginatedorders;
+  }
 }
 
 module.exports = new PhleboOrderDataServiceProvider();

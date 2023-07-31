@@ -1,10 +1,19 @@
 const express = require("express");
+const fileUpload = require("express-fileupload");
 const app = express();
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
-
 dotenv.config();
 let cors = require("cors");
+
+// file upload middleware
+app.use(
+  fileUpload({
+    useTempFiles: true,
+    createParentPath: true,
+  })
+);
+
 app.use(cors());
 
 app.use(express.urlencoded({ extended: true }));
