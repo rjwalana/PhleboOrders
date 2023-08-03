@@ -4,7 +4,7 @@ const phleboOrderDataServiceProvider = require("../services/PhleboOrderDataServi
 require("dotenv").config();
 const AWS = require("aws-sdk");
 const fs = require("fs");
-const path = require("path");
+// const path = require("path");
 
 //configuring the AWS environment
 AWS.config.update({
@@ -236,6 +236,7 @@ const upload = (req, res) => {
     } else {
       //Use the name of the input field (i.e. "file") to retrieve the uploaded file
       const file = req.files.file;
+      console.log(file.name);
 
       //read file and upload data (stream)
       fs.readFile(file.tempFilePath, function (err, data) {
@@ -244,8 +245,6 @@ const upload = (req, res) => {
         //configuring parameters
         const params = {
           Bucket: process.env.AWS_S3_BUCKET,
-          // Body: fs.createReadStream(file.path),
-          // Body: fs.readFileSync(file.path),
           Body: data,
           Key: "folder/" + Date.now() + "_" + file.name,
         };
@@ -256,7 +255,6 @@ const upload = (req, res) => {
             if (err) {
               console.log(err);
             }
-            console.log("Temp File Deleted");
           });
 
           if (err) {
@@ -275,7 +273,27 @@ const upload = (req, res) => {
   }
 };
 
-const download = (req, res) => {};
+const download = (req, res) => {
+  const params = {
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: req.params.filename,
+  };
+
+  // Download the file from S3
+  s3.getObject(params, (err, data) => {
+    if (err) {
+      console.error("Error downloading the file:", err);
+      return res.status(500).json({ error: "Failed to download the file" });
+    } else {
+      // Set the appropriate content type for the response
+      res.setHeader("Content-Type", data.ContentType);
+      // res.setHeader("Content-Type", "application/pdf");
+
+      // Send the file data in the response
+      res.send(data.Body);
+    }
+  });
+};
 
 module.exports = {
   getAllOrders,

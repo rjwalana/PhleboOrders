@@ -18,6 +18,6 @@ router.put("/:id", updateOrder);
 router.delete("/:id", deleteOrder);
 router.get("/paginate/:page/:limit", paginatedOrders);
 router.post("/upload", upload);
-router.get("/download", download);
+router.get("/download/:filename", download);
 
 module.exports = router;
