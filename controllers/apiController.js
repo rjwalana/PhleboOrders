@@ -275,22 +275,24 @@ const paginatedOrders = (req, res) => {
 // };
 
 const upload = async (req, res) => {
-  if (!req.files || !req.files.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-
-  const file = req.files.file;
-
-  const folderName = "uploads";
-
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET,
-    Body: file.data,
-    Key: `${folderName}/${file.name}`,
-  };
-
   // Upload the file to S3
   try {
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const file = req.files.file;
+
+    const folderName = "uploads";
+
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET,
+      Body: file.data,
+      Key: `${folderName}/${file.name}`,
+    };
+
+    console.log("File size:", file.data.length); // Add this line before s3.upload
+
     const data = await s3.upload(params).promise();
     console.log("File uploaded successfully. Location:", data.Location);
 
@@ -337,6 +339,7 @@ const upload = async (req, res) => {
 
 const download = (req, res) => {
   const s3Path = req.body.s3Path;
+  console.log("Received s3Path:", s3Path);
 
   // Download the file from S3
   const params = {
@@ -347,6 +350,7 @@ const download = (req, res) => {
     ), // Extract the key from the S3 path
   };
 
+  console.log("S3 Object Key:", params.Key);
   s3.getObject(params, (err, data) => {
     if (err) {
       console.error("Error downloading the file:", err);

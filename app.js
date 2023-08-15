@@ -9,12 +9,7 @@ let cors = require("cors");
 require("aws-sdk/lib/maintenance_mode_message").suppress = true;
 
 // file upload middleware
-app.use(
-  fileUpload({
-    useTempFiles: true,
-    createParentPath: true,
-  })
-);
+app.use(fileUpload());
 
 app.use(cors());
 
