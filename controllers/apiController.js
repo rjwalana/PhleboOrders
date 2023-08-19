@@ -1,4 +1,3 @@
-const PhleboOrder = require("../models/PhleboOrder");
 const phleboOrderDataServiceProvider = require("../services/PhleboOrderDataServiceProvider");
 const s3ServiceProvider = require("../services/s3ServiceProvider");
 
