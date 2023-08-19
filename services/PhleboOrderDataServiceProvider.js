@@ -31,20 +31,22 @@ class PhleboOrderDataServiceProvider {
     return await deletedorder;
   }
 
-  async paginate(limit, offset) {
-    // const paginatedorders = PhleboOrder.paginate(
-    //   {},
-    //   { limit, offset },
-    //   function (err, data) {
-    //     res.send({
-    //       totalItems: data.totalDocs,
-    //       PhleboOrders: data.docs,
-    //       totalPages: data.totalPages,
-    //       currentPage: data.page - 1,
-    //     });
-    //   }
-    // );
-    // return await paginatedorders;
+  async paginate(page, size) {
+    const getPagination = (page, size) => {
+      const limit = size ? +size : 3;
+      const offset = page ? page * limit : 0;
+
+      return { limit, offset };
+    };
+    const { limit, offset } = getPagination(page, size);
+
+    const data = await PhleboOrder.paginate({}, { limit, offset });
+    return {
+      totalItems: data.totalDocs,
+      PhleboOrders: data.docs,
+      totalPages: data.totalPages,
+      currentPage: data.page - 1,
+    };
   }
 }
 

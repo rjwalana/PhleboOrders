@@ -1,21 +1,9 @@
 const PhleboOrder = require("../models/PhleboOrder");
 const phleboOrderDataServiceProvider = require("../services/PhleboOrderDataServiceProvider");
+const s3ServiceProvider = require("../services/s3ServiceProvider");
 
-require("dotenv").config();
-const AWS = require("aws-sdk");
+// const AWS = require("aws-sdk");
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-
-//configuring the AWS environment
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
-});
-
-// initialize s3
-const s3 = new AWS.S3();
 
 //GET METHOD for all orders
 const getAllOrders = async (req, res) => {
@@ -200,79 +188,28 @@ const deleteOrder = async (req, res) => {
 };
 
 //Paginate
-const paginatedOrders = (req, res) => {
+const paginatedOrders = async (req, res) => {
   try {
     const page = req.params.page;
     const size = req.params.limit;
-    const getPagination = (page, size) => {
-      const limit = size ? +size : 3;
-      const offset = page ? page * limit : 0;
 
-      return { limit, offset };
-    };
-    const { limit, offset } = getPagination(page, size);
-
-    PhleboOrder.paginate({}, { offset, limit }, function (err, data) {
-      res.send({
-        totalItems: data.totalDocs,
-        PhleboOrders: data.docs,
-        totalPages: data.totalPages,
-        currentPage: data.page - 1,
-      });
+    const paginatedOrders = await phleboOrderDataServiceProvider.paginate(
+      page,
+      size
+    );
+    res.status(200).json({
+      success: true,
+      message: "Orders pagination successfull!",
+      data: paginatedOrders,
     });
   } catch (err) {
-    res.status(500).json(err);
     console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "Orders pagination failed!",
+    });
   }
 };
-
-// const upload = (req, res) => {
-//   try {
-//     // if there is no file
-//     if (!req.files) {
-//       res.send({
-//         status: false,
-//         message: "No file uploaded",
-//       });
-//     } else {
-//       //Use the name of the input field (i.e. "file") to retrieve the uploaded file
-//       const file = req.files.file;
-//       console.log(file.name);
-
-//       //read file and upload data (stream)
-//       fs.readFile(file.tempFilePath, function (err, data) {
-//         if (err) throw err; // Something went wrong!
-
-//         //configuring parameters
-//         const params = {
-//           Bucket: process.env.AWS_S3_BUCKET,
-//           Body: data,
-//           Key: "folder/" + Date.now() + "_" + file.name,
-//         };
-//         // Upload the file to S3
-//         s3.upload(params, (err, data) => {
-//           //delete file from temp
-//           fs.unlink(file.tempFilePath, function (err) {
-//             if (err) {
-//               console.log(err);
-//             }
-//           });
-
-//           if (err) {
-//             console.error("Error uploading the file:", err);
-//             return res.status(500).json({ error: "Failed to upload the file" });
-//           } else {
-//             console.log("File uploaded successfully. Location:", data.Location);
-//             return res.json({ success: true, location: data.Location });
-//           }
-//         });
-//       });
-//     }
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).end();
-//   }
-// };
 
 const upload = async (req, res) => {
   // Upload the file to S3
@@ -280,26 +217,20 @@ const upload = async (req, res) => {
     if (!req.files || !req.files.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-
     const file = req.files.file;
-
     const folderName = "uploads";
+    console.log("File size:", file.data.length);
 
-    const params = {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Body: file.data,
-      Key: `${folderName}/${file.name}`,
-    };
-
-    console.log("File size:", file.data.length); // Add this line before s3.upload
-
-    const data = await s3.upload(params).promise();
-    console.log("File uploaded successfully. Location:", data.Location);
+    const Location = await s3ServiceProvider.uploadFile(
+      file.data,
+      folderName,
+      file.name
+    );
+    console.log("File uploaded successfully at Location:", Location);
 
     // Send the S3 file path to the other API
     const apiUrl = "http://localhost:4000/api/orders/convert-to-base64";
-
-    const payload = { s3Path: data.Location };
+    const payload = { s3Path: Location };
     const apiResponse = await axios.post(apiUrl, payload);
     console.log("API Response:", apiResponse.data);
 
@@ -307,61 +238,35 @@ const upload = async (req, res) => {
       success: true,
       message: "File uploaded and API notified successfully",
     });
-  } catch (error) {
-    console.error("Error uploading the file:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to upload the file or notify API" });
+  } catch (err) {
+    console.log("Error uploading file to S3:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload the file or notify API",
+    });
   }
 };
 
-// const download = (req, res) => {
-//   const params = {
-//     Bucket: process.env.AWS_S3_BUCKET,
-//     Key: req.params.filename,
-//   };
-
-//   // Download the file from S3
-//   s3.getObject(params, (err, data) => {
-//     if (err) {
-//       console.error("Error downloading the file:", err);
-//       return res.status(500).json({ error: "Failed to download the file" });
-//     } else {
-//       // Set the appropriate content type for the response
-//       res.setHeader("Content-Type", data.ContentType);
-//       // res.setHeader("Content-Type", "application/pdf");
-
-//       // Send the file data in the response
-//       res.send(data.Body);
-//     }
-//   });
-// };
-
-const download = (req, res) => {
-  const s3Path = req.body.s3Path;
-  console.log("Received s3Path:", s3Path);
-
-  // Download the file from S3
-  const params = {
-    Bucket: process.env.AWS_S3_BUCKET,
-    Key: s3Path.replace(
-      `https://$(process.env.AWS_S3_BUCKET).s3.amazonaws.com/`,
-      ""
-    ), // Extract the key from the S3 path
-  };
-
-  console.log("S3 Object Key:", params.Key);
-  s3.getObject(params, (err, data) => {
-    if (err) {
-      console.error("Error downloading the file:", err);
-      return res.status(500).json({ error: "Failed to download the file" });
-    } else {
-      // Convert the file data to base64
-      const base64String = data.Body.toString("base64");
-      // Send the base64 string in the response
-      return res.json({ base64String });
-    }
-  });
+const download = async (req, res) => {
+  try {
+    const s3Path = req.body.s3Path;
+    console.log("Received s3Path:", s3Path);
+    const fileData = await s3ServiceProvider.downloadFile(s3Path);
+    // Convert the file data to base64
+    const base64String = fileData.toString("base64");
+    // Send the base64 string in the response
+    return res.json({
+      success: true,
+      message: "file download successfull",
+      data: base64String,
+    });
+  } catch (err) {
+    console.log("Error downloading the file:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to download the file",
+    });
+  }
 };
 
 module.exports = {
